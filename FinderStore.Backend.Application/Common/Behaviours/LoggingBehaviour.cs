@@ -1,0 +1,54 @@
+﻿using MediatR;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+
+namespace FinderStore.Backend.Application.Common.Behaviours;
+
+public class LoggingBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    private readonly ILogger<LoggingBehaviour<TRequest, TResponse>> _logger;
+
+    public LoggingBehaviour(ILogger<LoggingBehaviour<TRequest, TResponse>> logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task<TResponse> Handle(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        var requestName = typeof(TRequest).Name;
+        var requestId = Guid.NewGuid().ToString();
+
+        _logger.LogInformation(
+            "Handling {RequestName} [{RequestId}] with data: {@Request}",
+            requestName, requestId, request);
+
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            var response = await next();
+
+            stopwatch.Stop();
+
+            _logger.LogInformation(
+                "Handled {RequestName} [{RequestId}] in {ElapsedMilliseconds}ms",
+                requestName, requestId, stopwatch.ElapsedMilliseconds);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+
+            _logger.LogError(ex,
+                "Error handling {RequestName} [{RequestId}] after {ElapsedMilliseconds}ms",
+                requestName, requestId, stopwatch.ElapsedMilliseconds);
+
+            throw;
+        }
+    }
+}
