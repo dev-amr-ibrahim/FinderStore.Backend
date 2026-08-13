@@ -1,4 +1,5 @@
-﻿using FinderStore.Backend.Application.DTOs;
+﻿using FinderStore.Application.Features.Products.Commands;
+using FinderStore.Backend.Application.DTOs;
 using FinderStore.Backend.Application.Features.Orders.Queries;
 using FinderStore.Backend.Application.Features.Products.Commands;
 using FinderStore.Backend.Application.Features.Products.Queries;
@@ -50,58 +51,58 @@ public class AdminProductsController : ControllerBase
     /// <summary>
     /// Delete a product
     /// </summary>
-    [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> DeleteProduct(Guid id)
-    {
-        await _mediator.Send(new DeleteProductCommand { Id = id });
-        return NoContent();
-    }
+    //[HttpDelete("{id:guid}")]
+    //[ProducesResponseType(StatusCodes.Status204NoContent)]
+    //public async Task<IActionResult> DeleteProduct(Guid id)
+    //{
+    //    await _mediator.Send(new DeleteProductCommand { Id = id });
+    //    return NoContent();
+    //}
 
     /// <summary>
     /// Toggle product active status
     /// </summary>
-    [HttpPatch("{id:guid}/toggle-active")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> ToggleProductActive(Guid id)
-    {
-        await _mediator.Send(new ToggleProductActiveCommand
-        {
-            Id = id,
-            UpdatedBy = User.Identity.Name
-        });
-        return NoContent();
-    }
+    //[HttpPatch("{id:guid}/toggle-active")]
+    //[ProducesResponseType(StatusCodes.Status204NoContent)]
+    //public async Task<IActionResult> ToggleProductActive(Guid id)
+    //{
+    //    await _mediator.Send(new ToggleProductActiveCommand
+    //    {
+    //        Id = id,
+    //        UpdatedBy = User.Identity.Name
+    //    });
+    //    return NoContent();
+    //}
 
     /// <summary>
     /// Toggle product featured status
     /// </summary>
-    [HttpPatch("{id:guid}/toggle-featured")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> ToggleProductFeatured(Guid id)
-    {
-        await _mediator.Send(new ToggleProductFeaturedCommand
-        {
-            Id = id,
-            UpdatedBy = User.Identity.Name
-        });
-        return NoContent();
-    }
+    //[HttpPatch("{id:guid}/toggle-featured")]
+    //[ProducesResponseType(StatusCodes.Status204NoContent)]
+    //public async Task<IActionResult> ToggleProductFeatured(Guid id)
+    //{
+    //    await _mediator.Send(new ToggleProductFeaturedCommand
+    //    {
+    //        Id = id,
+    //        UpdatedBy = User.Identity.Name
+    //    });
+    //    return NoContent();
+    //}
 
     /// <summary>
     /// Upload product images
     /// </summary>
-    [HttpPost("{id:guid}/images")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> UploadProductImages(Guid id, [FromForm] List<IFormFile> files)
-    {
-        await _mediator.Send(new UploadProductImagesCommand
-        {
-            ProductId = id,
-            Files = files
-        });
-        return Ok();
-    }
+    //[HttpPost("{id:guid}/images")]
+    //[ProducesResponseType(StatusCodes.Status200OK)]
+    //public async Task<IActionResult> UploadProductImages(Guid id, [FromForm] List<IFormFile> files)
+    //{
+    //    await _mediator.Send(new UploadProductImagesCommand
+    //    {
+    //        ProductId = id,
+    //        Files = files
+    //    });
+    //    return Ok();
+    //}
 
     /// <summary>
     /// Get dashboard statistics

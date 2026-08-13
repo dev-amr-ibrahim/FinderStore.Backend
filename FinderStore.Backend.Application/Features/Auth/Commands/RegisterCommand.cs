@@ -94,7 +94,7 @@ namespace FinderStore.Backend.Application.Features.Auth.Commands
 
             return new AuthResponse
             {
-                Token = token,
+                accessToken = token,
                 RefreshToken = refreshToken,
                 ExpiresAt = expires,
                 User = new UserDto
