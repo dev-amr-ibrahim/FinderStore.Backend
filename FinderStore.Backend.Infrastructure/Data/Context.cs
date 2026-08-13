@@ -32,6 +32,15 @@ namespace FinderStore.Backend.Infrastructure.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Order>(order =>
+            {
+                order.OwnsOne(x => x.ShippingAddress);
+                order.OwnsOne(x => x.BillingAddress);
+                order.OwnsOne(x => x.PaymentMethod);
+            });
+
+            modelBuilder.ApplyConfigurationsFromAssembly(
+                typeof(ApplicationDbContext).Assembly);
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         }
     }

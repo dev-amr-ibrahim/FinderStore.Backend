@@ -1,9 +1,10 @@
 ﻿using FinderStore.Backend.Application.Features.Auth.Commands;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace LuxeCommerce.API.Controllers;
+namespace FinderStore.Backend.API;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -42,7 +43,7 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
-    [HttpPost("refresh-token")]
+    [HttpPost("refresh")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenCommand command)
     {
@@ -60,11 +61,36 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpGet("me")]
-    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProfileDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<UserDto>> GetCurrentUser()
     {
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var user = await _mediator.Send(new GetUserByIdQuery { UserId = Guid.Parse(userId) });
         return Ok(user);
+    }
+
+    [Authorize]
+    [HttpGet("GetUserProfile")]
+    [ProducesResponseType(typeof(ProfileDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ProfileDto>> GetUserProfile()
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var user = await _mediator.Send(new GetUserProfileByIdQuery { UserId = Guid.Parse(userId) });
+        return Ok(user);
+    }
+
+    [Authorize]
+    [HttpPost("update-profile")]
+    [ProducesResponseType(typeof(ProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ProfileDto>> UpdateProfile([FromBody] UpdateProfileCommand command)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userId, out var parsedUserId))
+            return Unauthorized();
+
+        var profile = await _mediator.Send(command with { UserId = parsedUserId });
+        return Ok(profile);
     }
 }
