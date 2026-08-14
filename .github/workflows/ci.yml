@@ -15,11 +15,9 @@ permissions:
 
 jobs:
   build-and-deploy:
-
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -29,17 +27,20 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore FinderStore.Backend.sln
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build FinderStore.Backend.sln --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test --no-build --configuration Release
+        run: dotnet test FinderStore.Backend.sln --no-build --configuration Release
 
       - name: Publish
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: dotnet publish --configuration Release --output ./publish
+        run: |
+          dotnet publish FinderStore.Backend.API/FinderStore.Backend.API.csproj \
+            --configuration Release \
+            --output ./publish
 
       - name: Login to Azure
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
