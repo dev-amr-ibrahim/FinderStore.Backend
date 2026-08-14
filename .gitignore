@@ -68,3 +68,4 @@ docker-compose.override.yml
 # Resharper
 _ReSharper*/
 *.DotSettings.user
+/publish-test

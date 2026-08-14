@@ -40,6 +40,7 @@ jobs:
         run: |
           dotnet publish FinderStore.Backend.API/FinderStore.Backend.API.csproj \
             --configuration Release \
+            --no-restore \
             --output ./publish
 
       - name: Login to Azure
