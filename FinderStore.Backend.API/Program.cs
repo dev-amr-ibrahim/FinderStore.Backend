@@ -43,7 +43,7 @@ public class Program
         {
             options.AddPolicy("AllowAngularApp", builder =>
             {
-                builder.WithOrigins("http://localhost:4200")
+                builder.WithOrigins("http://localhost:4200", "https://salmon-plant-031d3510f.7.azurestaticapps.net")
                        .AllowAnyMethod()
                        .AllowAnyHeader()
                        .AllowCredentials();
