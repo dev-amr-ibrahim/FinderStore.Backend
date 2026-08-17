@@ -1,5 +1,5 @@
-﻿using FinderStore.Backend.Application.Common.Interfaces;
-using FinderStore.Backend.Domain.Entities;
+﻿using FinderStore.Backend.Domain.Entities;
+using FinderStore.Backend.Domain.Repositories;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 
@@ -13,12 +13,12 @@ namespace FinderStore.Backend.Application.Features.Auth.Commands
     public class GetUserProfileByIdQueryHandler : IRequestHandler<GetUserProfileByIdQuery, ProfileDto>
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IApplicationDbContext _context;
+        private readonly IAddressRepository _addressRepository;
 
-        public GetUserProfileByIdQueryHandler(UserManager<ApplicationUser> userManager, IApplicationDbContext context)
+        public GetUserProfileByIdQueryHandler(UserManager<ApplicationUser> userManager, IAddressRepository addressRepository)
         {
             _userManager = userManager;
-            _context = context;
+            _addressRepository = addressRepository;
         }
 
         public async Task<ProfileDto> Handle(GetUserProfileByIdQuery request, CancellationToken cancellationToken)
@@ -28,7 +28,7 @@ namespace FinderStore.Backend.Application.Features.Auth.Commands
                 throw new KeyNotFoundException("User not found");
 
             var roles = await _userManager.GetRolesAsync(user);
-            var userAddresses = _context.Addresses.Where(a => a.UserId == user.Id).ToList();
+            var userAddresses = await _addressRepository.GetAddressesByUserIdAsync(user.Id, cancellationToken);
 
             return new ProfileDto
             {

@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using FinderStore.Backend.Application.Common.Interfaces;
 using FinderStore.Backend.Application.DTOs;
+using FinderStore.Backend.Domain.Repositories;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,25 +13,18 @@ public record GetProductByIdQuery : IRequest<ProductDto?>
 
 public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, ProductDto?>
 {
-    private readonly IApplicationDbContext _context;
+    private readonly IProductRepository _productRepository;
     private readonly IMapper _mapper;
 
-    public GetProductByIdQueryHandler(IApplicationDbContext context, IMapper mapper)
+    public GetProductByIdQueryHandler(IProductRepository productRepository, IMapper mapper)
     {
-        _context = context;
+        _productRepository = productRepository;
         _mapper = mapper;
     }
 
     public async Task<ProductDto?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
-        var product = await _context.Products
-            .AsNoTracking()
-            .Include(p => p.Category)
-            .Include(p => p.Images.OrderBy(i => i.DisplayOrder))
-            .Include(p => p.Variants)
-                .ThenInclude(v => v.Options)
-            .Include(p => p.Tags)
-            .FirstOrDefaultAsync(p => p.Id == request.Id && p.IsActive, cancellationToken);
+        var product = await _productRepository.GetByIdWithDetailsAsync(request.Id, cancellationToken);
 
         return product == null ? null : _mapper.Map<ProductDto>(product);
     }

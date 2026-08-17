@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using FinderStore.Backend.Application.Common.Interfaces;
+using FinderStore.Backend.Domain.Repositories;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FinderStore.Backend.Application.DTOs;
@@ -19,18 +19,18 @@ namespace FinderStore.Backend.Application.Features.Products.Queries
 
     public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, List<ProductDto>>
     {
-        private readonly IApplicationDbContext _context;
+        private readonly IProductRepository _productRepository;
         private readonly IMapper _mapper;
 
-        public GetProductsQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public GetProductsQueryHandler(IProductRepository productRepository, IMapper mapper)
         {
-            _context = context;
+            _productRepository = productRepository;
             _mapper = mapper;
         }
 
         public async Task<List<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
         {
-            var query = _context.Products
+            var query = _productRepository.Query()
                 .AsNoTracking()
             .Include(p => p.Category)
             .Include(p => p.Images)

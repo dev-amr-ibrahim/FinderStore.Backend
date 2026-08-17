@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using FinderStore.Backend.Application.Common.Interfaces;
 using FinderStore.Backend.Application.DTOs;
+using FinderStore.Backend.Domain.Repositories;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,18 +16,18 @@ public record GetProductReviewsQuery : IRequest<List<ReviewDto>>
 
 public class GetProductReviewsQueryHandler : IRequestHandler<GetProductReviewsQuery, List<ReviewDto>>
 {
-    private readonly IApplicationDbContext _context;
+    private readonly IProductReviewRepository _productReviewRepository;
     private readonly IMapper _mapper;
 
-    public GetProductReviewsQueryHandler(IApplicationDbContext context, IMapper mapper)
+    public GetProductReviewsQueryHandler(IProductReviewRepository productReviewRepository, IMapper mapper)
     {
-        _context = context;
+        _productReviewRepository = productReviewRepository;
         _mapper = mapper;
     }
 
     public async Task<List<ReviewDto>> Handle(GetProductReviewsQuery request, CancellationToken cancellationToken)
     {
-        var query = _context.ProductReviews
+        var query = _productReviewRepository.Query()
             .AsNoTracking()
             .Include(r => r.User)
             .Where(r => r.ProductId == request.ProductId && r.IsApproved);
@@ -37,7 +37,7 @@ public class GetProductReviewsQueryHandler : IRequestHandler<GetProductReviewsQu
             "highest" => query.OrderByDescending(r => r.Rating),
             "lowest" => query.OrderBy(r => r.Rating),
             "helpful" => query.OrderByDescending(r => r.HelpfulCount),
-            _ => query.OrderByDescending(r => r.CreatedAt) // newest default
+            _ => query.OrderByDescending(r => r.CreatedAt)
         };
 
         query = query.Skip((request.Page - 1) * request.PageSize)

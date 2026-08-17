@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using FinderStore.Backend.Application.Common.Interfaces;
 using FinderStore.Backend.Application.DTOs;
+using FinderStore.Backend.Domain.Repositories;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,18 +14,18 @@ namespace FinderStore.Backend.Application.Features.Orders.Queries
 
     public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, OrderDto?>
     {
-        private readonly IApplicationDbContext _context;
+        private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
 
-        public GetOrderByIdQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public GetOrderByIdQueryHandler(IOrderRepository orderRepository, IMapper mapper)
         {
-            _context = context;
+            _orderRepository = orderRepository;
             _mapper = mapper;
         }
 
         public async Task<OrderDto?> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken)
         {
-            var order = await _context.Orders
+            var order = await _orderRepository.Query()
                 .AsNoTracking()
                 .Include(o => o.OrderItems)
                 .Include(o => o.StatusHistory.OrderByDescending(h => h.ChangedAt))

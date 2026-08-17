@@ -96,5 +96,31 @@ namespace FinderStore.Backend.Domain.Entities
             UpdatedAt = DateTime.UtcNow;
             UpdatedBy = updatedBy;
         }
+
+        /// <summary>
+        /// Adds an image to the product's image collection.
+        /// This method is called by the domain service to maintain business rules.
+        /// </summary>
+        public void AddImage(ProductImage image)
+        {
+            if (image == null)
+                throw new ArgumentNullException(nameof(image));
+
+            if (image.ProductId != this.Id)
+                throw new InvalidOperationException("Image does not belong to this product.");
+
+            Images.Add(image);
+        }
+
+        /// <summary>
+        /// Removes an image from the product's image collection.
+        /// </summary>
+        public void RemoveImage(ProductImage image)
+        {
+            if (image == null)
+                throw new ArgumentNullException(nameof(image));
+
+            Images.Remove(image);
+        }
     }
 }
