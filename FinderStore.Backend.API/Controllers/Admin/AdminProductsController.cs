@@ -1,11 +1,11 @@
-﻿using FinderStore.Application.Features.Products.Commands;
-using FinderStore.Backend.Application.DTOs;
-using FinderStore.Backend.Application.Features.Orders.Queries;
+﻿using FinderStore.Backend.Application.Features.Orders.Queries;
 using FinderStore.Backend.Application.Features.Products.Commands;
 using FinderStore.Backend.Application.Features.Products.Queries;
-using MediatR;
+using FinderStore.Application.Features.Products.Commands;
+using FinderStore.Backend.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MediatR;
 
 namespace LuxeCommerce.API.Controllers.Admin;
 
@@ -28,7 +28,7 @@ public class AdminProductsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<Guid>> CreateProduct([FromBody] CreateProductCommand command)
+    public async Task<ActionResult<Guid>> CreateProduct([FromForm] CreateProductCommand command)
     {
         command = command with { CreatedBy = User.Identity.Name };
         var productId = await _mediator.Send(command);

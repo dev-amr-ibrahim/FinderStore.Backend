@@ -21,5 +21,10 @@ namespace FinderStore.Backend.Application.Common.Interfaces
         Task<bool> ExistsAsync(
         string fileName,
         CancellationToken cancellationToken = default);
+
+        Task<string> GenerateReadUrlAsync(
+            string fileName,
+            TimeSpan expiresIn,
+            CancellationToken cancellationToken = default);
     }
 }

@@ -78,7 +78,7 @@ namespace FinderStore.Backend.Application.Services
             {
                 _productImageService.AddImageToProduct(
                     product,
-                    imageUrl,
+                    fileName,
                     altText,
                     altTextAr,
                     isPrimary);

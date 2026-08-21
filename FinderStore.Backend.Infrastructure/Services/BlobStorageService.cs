@@ -1,6 +1,8 @@
 ﻿using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Sas;
 using FinderStore.Backend.Application.Common.Interfaces;
 using Microsoft.Extensions.Configuration;
 
@@ -9,8 +11,9 @@ namespace FinderStore.Backend.Infrastructure.Services
     public class BlobStorageService : IBlobStorageService
     {
         private readonly BlobContainerClient _containerClient;
+        private readonly BlobServiceClient _blobServiceClient;
 
-        public BlobStorageService(IConfiguration configuration)
+        public BlobStorageService(IConfiguration configuration, BlobServiceClient blobServiceClient)
         {
             var accountName = configuration["AzureStorage:AccountName"];
             var containerName = configuration["AzureStorage:ContainerName"];
@@ -32,12 +35,11 @@ namespace FinderStore.Backend.Infrastructure.Services
 
             var credential = new DefaultAzureCredential();
 
-            var blobServiceClient =
-                new BlobServiceClient(serviceUri, credential);
+            _blobServiceClient = blobServiceClient;
 
             _containerClient =
                 blobServiceClient.GetBlobContainerClient(containerName);
-
+            _blobServiceClient = blobServiceClient;
         }
         public async Task<string> UploadAsync(
             Stream stream,
@@ -114,5 +116,52 @@ namespace FinderStore.Backend.Infrastructure.Services
             return response.Value;
         }
 
+        public async Task<string> GenerateReadUrlAsync(
+            string fileName,
+            TimeSpan expiresIn,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+                throw new ArgumentException(
+                    "File name is required.",
+                    nameof(fileName));
+
+            var blobClient =
+                _containerClient.GetBlobClient(fileName);
+
+            if (!await blobClient.ExistsAsync(cancellationToken))
+                throw new FileNotFoundException(
+                    $"Blob '{fileName}' was not found.");
+
+            var startsOn = DateTimeOffset.UtcNow.AddMinutes(-1);
+
+            var expiresOn = DateTimeOffset.UtcNow.Add(expiresIn);
+
+            var userDelegationKey =
+                await _blobServiceClient
+                    .GetUserDelegationKeyAsync(
+                        startsOn,
+                        expiresOn,
+                        cancellationToken);
+
+            var sasBuilder = new BlobSasBuilder
+            {
+                BlobContainerName = _containerClient.Name,
+                BlobName = fileName,
+                Resource = "b",
+                StartsOn = startsOn,
+                ExpiresOn = expiresOn
+            };
+
+            sasBuilder.SetPermissions(
+                BlobSasPermissions.Read);
+
+            var sas =
+                sasBuilder.ToSasQueryParameters(
+                    userDelegationKey.Value,
+                    _blobServiceClient.AccountName);
+
+            return $"{blobClient.Uri}?{sas}";
+        }
     }
 }

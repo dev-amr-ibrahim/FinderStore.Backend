@@ -1,8 +1,7 @@
-using FinderStore.Backend.Application;        // ← Required for AddApplication()
+using FinderStore.Backend.Application;
 using FinderStore.Backend.Domain.Entities;
-using FinderStore.Backend.Infrastructure;     // ← Required for AddInfrastructure()
+using FinderStore.Backend.Infrastructure;
 using FinderStore.Backend.Infrastructure.Data;
-using FinderStore.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -43,7 +42,7 @@ public class Program
         {
             options.AddPolicy("AllowAngularApp", builder =>
             {
-                builder.WithOrigins("http://localhost:4200", "https://salmon-plant-031d3510f.7.azurestaticapps.net")
+                builder.WithOrigins("http://localhost:4200", "http://localhost:5173", "https://salmon-plant-031d3510f.7.azurestaticapps.net")
                        .AllowAnyMethod()
                        .AllowAnyHeader()
                        .AllowCredentials();

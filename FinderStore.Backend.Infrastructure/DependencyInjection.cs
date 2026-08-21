@@ -1,4 +1,6 @@
-﻿using FinderStore.Backend.Application.Common.Interfaces;
+﻿using Azure.Identity;
+using Azure.Storage.Blobs;
+using FinderStore.Backend.Application.Common.Interfaces;
 using FinderStore.Backend.Domain.Common.Interfaces;
 using FinderStore.Backend.Domain.Entities;
 using FinderStore.Backend.Domain.Repositories;
@@ -12,7 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FinderStore.Infrastructure;
+namespace FinderStore.Backend.Infrastructure;
 
 public static class DependencyInjection
 {
@@ -106,6 +108,22 @@ public static class DependencyInjection
 
         // HTTP Context Accessor
         services.AddHttpContextAccessor();
+
+
+        services.AddSingleton<BlobServiceClient>(sp =>
+        {
+            var accountName =
+                configuration["AzureStorage:AccountName"]
+                ?? throw new InvalidOperationException(
+                    "AzureStorage:AccountName is missing.");
+
+            var credential = new DefaultAzureCredential();
+
+            return new BlobServiceClient(
+                new Uri(
+                    $"https://{accountName}.blob.core.windows.net"),
+                credential);
+        });
 
         services.AddScoped<IBlobStorageService, BlobStorageService>();
 
