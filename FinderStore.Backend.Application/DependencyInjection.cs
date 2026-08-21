@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
 using FinderStore.Backend.Application.Common.Behaviours;
+using FinderStore.Backend.Application.Services;
+using FinderStore.Backend.Domain.Services;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +24,12 @@ public static class DependencyInjection
             cfg.AddOpenBehavior(typeof(ValidationBehaviour<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
         });
+
+        // Register Domain Services
+        services.AddScoped<IProductImageService, ProductImageService>();
+
+        // Register Application Services
+        services.AddScoped<IProductApplicationService, ProductApplicationService>();
 
         return services;
     }

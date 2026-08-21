@@ -1,7 +1,12 @@
 ﻿using FinderStore.Backend.Application.Common.Interfaces;
+using FinderStore.Backend.Application.Services;
+using FinderStore.Backend.Domain.Common.Interfaces;
 using FinderStore.Backend.Domain.Entities;
+using FinderStore.Backend.Domain.Repositories;
+using FinderStore.Backend.Domain.Services;
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 
 namespace FinderStore.Backend.Application.Features.Products.Commands
 {
@@ -17,6 +22,21 @@ namespace FinderStore.Backend.Application.Features.Products.Commands
         public int StockQuantity { get; init; }
         public Guid CategoryId { get; init; }
         public string CreatedBy { get; init; }
+        /// <summary>
+        /// Multiple product images with metadata
+        /// </summary>
+        public List<CreateProductImageDto> ProductImages { get; init; } = new();
+    }
+
+    /// <summary>
+    /// DTO for product image creation
+    /// </summary>
+    public class CreateProductImageDto
+    {
+        public IFormFile File { get; set; }
+        public string Alt { get; set; }
+        public string? AltAr { get; set; }
+        public bool IsPrimary { get; set; }
     }
     public class CreateProductCommandValidator : AbstractValidator<CreateProductCommand>
     {
@@ -33,11 +53,21 @@ namespace FinderStore.Backend.Application.Features.Products.Commands
 
     public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand, Guid>
     {
-        private readonly IApplicationDbContext _context;
+        private readonly IProductRepository _productRepository;
+        private readonly IProductImageRepository _productImageRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IProductApplicationService _productApplicationService;
 
-        public CreateProductCommandHandler(IApplicationDbContext context)
+        public CreateProductCommandHandler(
+            IProductRepository productRepository,
+            IProductImageRepository productImageRepository,
+            IUnitOfWork unitOfWork,
+            IProductApplicationService productApplicationService)
         {
-            _context = context;
+            _productRepository = productRepository;
+            _productImageRepository = productImageRepository;
+            _unitOfWork = unitOfWork;
+            _productApplicationService = productApplicationService;
         }
 
         public async Task<Guid> Handle(CreateProductCommand request, CancellationToken cancellationToken)
@@ -54,8 +84,27 @@ namespace FinderStore.Backend.Application.Features.Products.Commands
                 request.CategoryId,
                 request.CreatedBy);
 
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _productRepository.AddAsync(product, cancellationToken);
+
+            if (request.ProductImages?.Any() == true)
+            {
+                var hasPrimary = request.ProductImages.Any(x => x.IsPrimary);
+                
+                foreach (var imageDto in request.ProductImages)
+                {
+                    var isPrimary = imageDto.IsPrimary || (!hasPrimary && request.ProductImages.IndexOf(imageDto) == 0);
+
+                    await _productApplicationService.UploadAndAddProductImageAsync(
+                        product,
+                        imageDto.File,
+                        imageDto.Alt,
+                        imageDto.AltAr,
+                        isPrimary,
+                        cancellationToken);
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return product.Id;
         }

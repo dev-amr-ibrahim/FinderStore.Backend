@@ -1,8 +1,11 @@
-﻿using FinderStore.Backend.Application.Common.Interfaces;
-using FinderStore.Backend.Application.DTOs;
+﻿using FinderStore.Backend.Application.DTOs;
+using FinderStore.Backend.Domain.Common.Interfaces;
+using FinderStore.Backend.Domain.Entities;
 using FinderStore.Backend.Domain.Enums;
+using FinderStore.Backend.Domain.Repositories;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace FinderStore.Backend.Application.Features.Orders.Queries
 {
@@ -13,41 +16,31 @@ namespace FinderStore.Backend.Application.Features.Orders.Queries
 
     public class GetDashboardStatsQueryHandler : IRequestHandler<GetDashboardStatsQuery, DashboardStatsDto>
     {
-        private readonly IApplicationDbContext _context;
+        private readonly IOrderRepository _orderRepository;
+        private readonly IProductRepository _productRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public GetDashboardStatsQueryHandler(IApplicationDbContext context)
+        public GetDashboardStatsQueryHandler(IOrderRepository orderRepository, IProductRepository productRepository, IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager)
         {
-            _context = context;
+            _orderRepository = orderRepository;
+            _productRepository = productRepository;
+            _unitOfWork = unitOfWork;
+            _userManager = userManager;
         }
 
         public async Task<DashboardStatsDto> Handle(GetDashboardStatsQuery request, CancellationToken cancellationToken)
         {
             var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
 
-            var totalOrders = await _context.Orders.CountAsync(cancellationToken);
-            var totalProducts = await _context.Products.CountAsync(cancellationToken);
-            var totalRevenue = await _context.Orders
-                .Where(o => o.Status == OrderStatus.Delivered)
-                .SumAsync(o => o.Total, cancellationToken);
-            var pendingOrders = await _context.Orders
-                .CountAsync(o => o.Status == OrderStatus.Pending, cancellationToken);
+            var totalOrders = await _orderRepository.CountAsync(cancellationToken);
+            var totalProducts = await _productRepository.CountAsync(cancellationToken);
+            var totalRevenue = await _orderRepository.GetTotalRevenueAsync(cancellationToken);
+            var pendingOrders = await _orderRepository.GetPendingOrdersCountAsync(cancellationToken);
 
-            var recentOrders = await _context.Orders
-                .AsNoTracking()
-                .OrderByDescending(o => o.CreatedAt)
-                .Take(5)
-                .Select(o => new RecentOrderDto
-                {
-                    Id = o.Id,
-                    OrderNumber = o.OrderNumber,
-                    CustomerName = o.User.FullName,
-                    Total = o.Total,
-                    Status = o.Status.ToString(),
-                    CreatedAt = o.CreatedAt
-                })
-                .ToListAsync(cancellationToken);
+            var recentOrders = await _orderRepository.GetRecentOrdersAsync(5, cancellationToken);
 
-            var revenueData = await _context.Orders
+            var revenueData = await _orderRepository.Query()
                 .Where(o => o.CreatedAt >= thirtyDaysAgo && o.Status == OrderStatus.Delivered)
                 .GroupBy(o => o.CreatedAt.Date)
                 .Select(g => new
@@ -62,10 +55,18 @@ namespace FinderStore.Backend.Application.Features.Orders.Queries
             {
                 TotalOrders = totalOrders,
                 TotalProducts = totalProducts,
-                TotalCustomers = await _context.Users.CountAsync(cancellationToken),
+                TotalCustomers = await _userManager.Users.CountAsync(cancellationToken),
                 TotalRevenue = totalRevenue,
                 PendingOrders = pendingOrders,
-                RecentOrders = recentOrders,
+                RecentOrders = recentOrders.Select(o => new RecentOrderDto
+                {
+                    Id = o.Id,
+                    OrderNumber = o.OrderNumber,
+                    CustomerName = o.User.FullName,
+                    Total = o.Total,
+                    Status = o.Status.ToString(),
+                    CreatedAt = o.CreatedAt
+                }).ToList(),
                 RevenueChart = new RevenueChartDto
                 {
                     Labels = revenueData.Select(x => x.Date.ToString("MMM dd")).ToList(),

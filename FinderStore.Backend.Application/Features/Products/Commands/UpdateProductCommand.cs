@@ -1,4 +1,6 @@
-﻿using FinderStore.Backend.Application.Common.Interfaces;
+﻿using FinderStore.Backend.Domain.Common.Interfaces;
+using FinderStore.Backend.Domain.Entities;
+using FinderStore.Backend.Domain.Repositories;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -34,17 +36,18 @@ public class UpdateProductCommandValidator : AbstractValidator<UpdateProductComm
 
 public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand>
 {
-    private readonly IApplicationDbContext _context;
+    private readonly IProductRepository _productRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public UpdateProductCommandHandler(IApplicationDbContext context)
+    public UpdateProductCommandHandler(IProductRepository productRepository, IUnitOfWork unitOfWork)
     {
-        _context = context;
+        _productRepository = productRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task Handle(UpdateProductCommand request, CancellationToken cancellationToken)
     {
-        var product = await _context.Products
-            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+        var product = await _productRepository.GetByIdAsync(request.Id, cancellationToken);
 
         if (product == null)
             throw new KeyNotFoundException($"Product with ID {request.Id} not found");
@@ -60,6 +63,7 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand>
             request.CategoryId,
             request.UpdatedBy);
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _productRepository.Update(product);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }
