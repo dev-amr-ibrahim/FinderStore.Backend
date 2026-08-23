@@ -10,7 +10,7 @@ namespace FinderStore.Backend.Infrastructure.Services
 {
     public class BlobStorageService : IBlobStorageService
     {
-        private readonly BlobContainerClient _containerClient;
+        private BlobContainerClient _containerClient;
         private readonly BlobServiceClient _blobServiceClient;
 
         public BlobStorageService(IConfiguration configuration, BlobServiceClient blobServiceClient)
@@ -24,27 +24,42 @@ namespace FinderStore.Backend.Infrastructure.Services
                     "AzureStorage:AccountName is not configured.");
             }
 
-            if (string.IsNullOrWhiteSpace(containerName))
-            {
-                throw new InvalidOperationException(
-                    "AzureStorage:ContainerName is not configured.");
-            }
+            //if (string.IsNullOrWhiteSpace(containerName))
+            //{
+            //    throw new InvalidOperationException(
+            //        "AzureStorage:ContainerName is not configured.");
+            //}
 
-            var serviceUri =
-            new Uri($"https://{accountName}.blob.core.windows.net");
+            //var serviceUri = new Uri($"https://{accountName}.blob.core.windows.net");
 
-            var credential = new DefaultAzureCredential();
+            //var credential = new DefaultAzureCredential();
 
             _blobServiceClient = blobServiceClient;
 
-            _containerClient =
-                blobServiceClient.GetBlobContainerClient(containerName);
-            _blobServiceClient = blobServiceClient;
+            //_containerClient =
+            //    blobServiceClient.GetBlobContainerClient(containerName);
         }
+
+        public string? GetPublicUrl(string? fileName, string containerName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+                return fileName;
+
+            if (Uri.TryCreate(fileName, UriKind.Absolute, out _))
+                return fileName;
+
+            return _blobServiceClient
+                .GetBlobContainerClient(containerName)
+                .GetBlobClient(fileName)
+                .Uri
+                .ToString();
+        }
+
         public async Task<string> UploadAsync(
             Stream stream,
             string fileName,
             string contentType,
+            string containerName,
             CancellationToken cancellationToken = default)
         {
             if (stream is null)
@@ -62,6 +77,9 @@ namespace FinderStore.Backend.Infrastructure.Services
 
             if (string.IsNullOrWhiteSpace(contentType))
                 contentType = "application/octet-stream";
+
+            _containerClient =
+               _blobServiceClient.GetBlobContainerClient(containerName);
 
             await _containerClient.CreateIfNotExistsAsync(
                 cancellationToken: cancellationToken);
@@ -87,13 +105,18 @@ namespace FinderStore.Backend.Infrastructure.Services
 
         public async Task DeleteAsync(
             string fileName,
+            string containerName,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (string.IsNullOrWhiteSpace(fileName) || 
+                string.IsNullOrWhiteSpace(containerName))
                 return;
 
+            var containerClient =
+            _blobServiceClient.GetBlobContainerClient(containerName);
+
             var blobClient =
-                _containerClient.GetBlobClient(fileName);
+                containerClient.GetBlobClient(fileName);
 
             await blobClient.DeleteIfExistsAsync(
                 DeleteSnapshotsOption.IncludeSnapshots,
@@ -102,13 +125,16 @@ namespace FinderStore.Backend.Infrastructure.Services
 
         public async Task<bool> ExistsAsync(
             string fileName,
+            string containerName,
             CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(containerName))
                 return false;
 
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+
             var blobClient =
-                _containerClient.GetBlobClient(fileName);
+                containerClient.GetBlobClient(fileName);
 
             var response = await blobClient.ExistsAsync(
                 cancellationToken);

@@ -41,7 +41,7 @@ public class AdminProductsController : ControllerBase
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] UpdateProductCommand command)
+    public async Task<IActionResult> UpdateProduct(Guid id, [FromForm] UpdateProductCommand command)
     {
         command = command with { Id = id, UpdatedBy = User.Identity.Name };
         await _mediator.Send(command);
@@ -51,13 +51,13 @@ public class AdminProductsController : ControllerBase
     /// <summary>
     /// Delete a product
     /// </summary>
-    //[HttpDelete("{id:guid}")]
-    //[ProducesResponseType(StatusCodes.Status204NoContent)]
-    //public async Task<IActionResult> DeleteProduct(Guid id)
-    //{
-    //    await _mediator.Send(new DeleteProductCommand { Id = id });
-    //    return NoContent();
-    //}
+    // [HttpDelete("{id:guid}")]
+    // [ProducesResponseType(StatusCodes.Status204NoContent)]
+    // public async Task<IActionResult> DeleteProduct(Guid id)
+    // {
+    //     await _mediator.Send(new DeleteProductCommand { Id = id });
+    //     return NoContent();
+    // }
 
     /// <summary>
     /// Toggle product active status
@@ -92,17 +92,17 @@ public class AdminProductsController : ControllerBase
     /// <summary>
     /// Upload product images
     /// </summary>
-    //[HttpPost("{id:guid}/images")]
-    //[ProducesResponseType(StatusCodes.Status200OK)]
-    //public async Task<IActionResult> UploadProductImages(Guid id, [FromForm] List<IFormFile> files)
-    //{
+    // [HttpPost("{id:guid}/images")]
+    // [ProducesResponseType(StatusCodes.Status200OK)]
+    // public async Task<IActionResult> UploadProductImages(Guid id, [FromForm] List<IFormFile> files)
+    // {
     //    await _mediator.Send(new UploadProductImagesCommand
     //    {
     //        ProductId = id,
     //        Files = files
     //    });
     //    return Ok();
-    //}
+    // }
 
     /// <summary>
     /// Get dashboard statistics

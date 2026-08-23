@@ -1,4 +1,5 @@
 using FinderStore.Backend.Application.Common.Interfaces;
+using FinderStore.Backend.Application.Constants;
 using FinderStore.Backend.Domain.Entities;
 using FinderStore.Backend.Domain.Services;
 using Microsoft.AspNetCore.Http;
@@ -71,6 +72,7 @@ namespace FinderStore.Backend.Application.Services
                 stream,
                 fileName,
                 imageFile.ContentType,
+                BlobContainers.Products,
                 cancellationToken);
 
             // Step 2: Add image to product using domain service (Domain concern)
@@ -78,7 +80,7 @@ namespace FinderStore.Backend.Application.Services
             {
                 _productImageService.AddImageToProduct(
                     product,
-                    fileName,
+                    imageUrl,
                     altText,
                     altTextAr,
                     isPrimary);
@@ -86,7 +88,7 @@ namespace FinderStore.Backend.Application.Services
             catch
             {
                 // If domain service fails, clean up the uploaded blob
-                await _blobStorageService.DeleteAsync(fileName, cancellationToken);
+                await _blobStorageService.DeleteAsync(fileName,BlobContainers.Products, cancellationToken);
                 throw;
             }
         }
@@ -115,7 +117,7 @@ namespace FinderStore.Backend.Application.Services
                 var uri = new Uri(imageUrl);
                 var fileName = uri.AbsolutePath.TrimStart('/');
                 
-                await _blobStorageService.DeleteAsync(fileName, cancellationToken);
+                await _blobStorageService.DeleteAsync(fileName, BlobContainers.Products, cancellationToken);
             }
             catch
             {
