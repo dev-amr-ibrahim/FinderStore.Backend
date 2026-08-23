@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using FinderStore.Backend.Application.Common.Interfaces;
+using FinderStore.Backend.Application.Constants;
 using FinderStore.Backend.Application.DTOs;
 using FinderStore.Backend.Domain.Repositories;
 using MediatR;
@@ -16,11 +18,13 @@ public record GetCategoriesQuery : IRequest<List<CategoryDto>>
     {
         private readonly ICategoryRepository _categoryRepository;
         private readonly IMapper _mapper;
+        private readonly IBlobStorageService _blobStorageService;
 
-        public GetCategoriesQueryHandler(ICategoryRepository categoryRepository, IMapper mapper)
+        public GetCategoriesQueryHandler(ICategoryRepository categoryRepository, IMapper mapper, IBlobStorageService blobStorageService)
         {
             _categoryRepository = categoryRepository;
             _mapper = mapper;
+            _blobStorageService = blobStorageService;
         }
 
         public async Task<List<CategoryDto>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
@@ -38,7 +42,18 @@ public record GetCategoriesQuery : IRequest<List<CategoryDto>>
 
             query = query.OrderBy(c => c.DisplayOrder);
 
-            return await _mapper.ProjectTo<CategoryDto>(query).ToListAsync(cancellationToken);
+            var categories = await _mapper.ProjectTo<CategoryDto>(query).ToListAsync(cancellationToken);
+            NormalizeImageUrls(categories);
+            return categories;
+        }
+
+        private void NormalizeImageUrls(IEnumerable<CategoryDto> categories)
+        {
+            foreach (var category in categories)
+            {
+                category.ImageUrl = _blobStorageService.GetPublicUrl(category.ImageUrl, BlobContainers.Categories);
+                NormalizeImageUrls(category.SubCategories);
+            }
         }
     }
 

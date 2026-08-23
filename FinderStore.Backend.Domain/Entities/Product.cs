@@ -90,6 +90,20 @@ namespace FinderStore.Backend.Domain.Entities
             UpdatedBy = updatedBy;
         }
 
+        public void SetActive(bool isActive, string updatedBy)
+        {
+            IsActive = isActive;
+            UpdatedAt = DateTime.UtcNow;
+            UpdatedBy = updatedBy;
+        }
+
+        public void AssignCategory(Guid categoryId, string updatedBy)
+        {
+            CategoryId = categoryId;
+            UpdatedAt = DateTime.UtcNow;
+            UpdatedBy = updatedBy;
+        }
+
         public void ToggleFeatured(string updatedBy)
         {
             IsFeatured = !IsFeatured;
