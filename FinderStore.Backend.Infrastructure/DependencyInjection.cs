@@ -1,14 +1,20 @@
-﻿using FinderStore.Backend.Application.Common.Interfaces;
-using FinderStore.Backend.Application.Services;
+﻿using Azure.Identity;
+using Azure.Storage.Blobs;
+using FinderStore.Backend.Application.Common.Interfaces;
+using FinderStore.Backend.Domain.Common.Interfaces;
 using FinderStore.Backend.Domain.Entities;
+using FinderStore.Backend.Domain.Repositories;
 using FinderStore.Backend.Infrastructure.Data;
+using FinderStore.Backend.Infrastructure.Persistence;
+using FinderStore.Backend.Infrastructure.Persistence.Repositories;
+using FinderStore.Backend.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FinderStore.Infrastructure;
+namespace FinderStore.Backend.Infrastructure;
 
 public static class DependencyInjection
 {
@@ -29,9 +35,23 @@ public static class DependencyInjection
                         errorNumbersToAdd: null);
                 }));
 
-        // Register DbContext interface
-        services.AddScoped<IApplicationDbContext>(provider =>
-            provider.GetRequiredService<ApplicationDbContext>());
+        // ============================================
+        // Repositories
+        // ============================================
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IOrderItemRepository, OrderItemRepository>();
+        services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+        services.AddScoped<IProductImageRepository, ProductImageRepository>();
+        services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
+        services.AddScoped<IVariantOptionRepository, VariantOptionRepository>();
+        services.AddScoped<IProductTagRepository, ProductTagRepository>();
+        services.AddScoped<IAddressRepository, AddressRepository>();
+        services.AddScoped<IWishlistItemRepository, WishlistItemRepository>();
+        services.AddScoped<IOrderStatusHistoryRepository, OrderStatusHistoryRepository>();
 
         // ============================================
         // Identity Configuration
@@ -88,6 +108,24 @@ public static class DependencyInjection
 
         // HTTP Context Accessor
         services.AddHttpContextAccessor();
+
+
+        services.AddSingleton<BlobServiceClient>(sp =>
+        {
+            var accountName =
+                configuration["AzureStorage:AccountName"]
+                ?? throw new InvalidOperationException(
+                    "AzureStorage:AccountName is missing.");
+
+            var credential = new DefaultAzureCredential();
+
+            return new BlobServiceClient(
+                new Uri(
+                    $"https://{accountName}.blob.core.windows.net"),
+                credential);
+        });
+
+        services.AddScoped<IBlobStorageService, BlobStorageService>();
 
         return services;
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,7 +14,7 @@ namespace FinderStore.Backend.Domain.Entities
         public string Slug { get; private set; }
         public string Description { get; private set; }
         public string DescriptionAr { get; private set; }
-        public string ImageUrl { get; private set; }
+        public string? ImageUrl { get; private set; }
         public bool IsActive { get; private set; }
         public int DisplayOrder { get; private set; }
 
@@ -29,7 +29,7 @@ namespace FinderStore.Backend.Domain.Entities
         private Category() { }
 
         public static Category Create(string name, string nameAr, string slug,
-            string description, string descriptionAr, string imageUrl,
+            string description, string descriptionAr, string? imageUrl,
             int displayOrder, Guid? parentCategoryId)
         {
             return new Category
@@ -46,6 +46,33 @@ namespace FinderStore.Backend.Domain.Entities
                 ParentCategoryId = parentCategoryId,
                 CreatedAt = DateTime.UtcNow
             };
+        }
+
+        public void Update(string name, string nameAr, string slug,
+            string description, string descriptionAr, string? imageUrl,
+            int displayOrder, Guid? parentCategoryId)
+        {
+            Name = name;
+            NameAr = nameAr;
+            Slug = slug;
+            Description = description;
+            DescriptionAr = descriptionAr;
+            ImageUrl = imageUrl;
+            DisplayOrder = displayOrder;
+            ParentCategoryId = parentCategoryId;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void ToggleActive()
+        {
+            IsActive = !IsActive;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void SetActive(bool isActive)
+        {
+            IsActive = isActive;
+            UpdatedAt = DateTime.UtcNow;
         }
     }
 }

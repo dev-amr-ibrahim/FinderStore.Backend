@@ -1,5 +1,6 @@
-using FinderStore.Backend.Application.Common.Interfaces;
+using FinderStore.Backend.Domain.Common.Interfaces;
 using FinderStore.Backend.Domain.Entities;
+using FinderStore.Backend.Domain.Repositories;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -81,68 +82,71 @@ public class ProfileAddressRequestValidator : AbstractValidator<ProfileAddressRe
     }
 }
 
-public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand, ProfileDto>
-{
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IApplicationDbContext _context;
-
-    public UpdateProfileCommandHandler(UserManager<ApplicationUser> userManager, IApplicationDbContext context)
+    public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand, ProfileDto>
     {
-        _userManager = userManager;
-        _context = context;
-    }
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAddressRepository _addressRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-    public async Task<ProfileDto> Handle(UpdateProfileCommand request, CancellationToken cancellationToken)
-    {
-        var user = await _context.Users.Include(x => x.Addresses)
-            .SingleOrDefaultAsync(x => x.Id == request.UserId, cancellationToken);
-        if (user is null)
-            throw new KeyNotFoundException("User not found");
-
-        var normalizedEmail = _userManager.NormalizeEmail(request.Email);
-        var existingUser = await _context.Users.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.NormalizedEmail == normalizedEmail, cancellationToken);
-        if (existingUser is not null && existingUser.Id != user.Id)
-            throw new InvalidOperationException("Email already registered");
-
-        user.FullName = request.FullName.Trim();
-        user.Email = request.Email.Trim();
-        user.UserName = user.Email;
-        user.PhoneNumber = request.Phone.Trim();
-        user.BackupPhone = string.IsNullOrWhiteSpace(request.BackupPhone) ? null : request.BackupPhone.Trim();
-
-        _context.Addresses.RemoveRange(user.Addresses);
-        var addresses = request.Addresses.Select((address, index) => new Address
+        public UpdateProfileCommandHandler(UserManager<ApplicationUser> userManager, IAddressRepository addressRepository, IUnitOfWork unitOfWork)
         {
-            Id = Guid.NewGuid(), Type = address.Label.Trim(), FullName = address.Recipient.Trim(),
-            AddressLine1 = address.Line1.Trim(),
-            AddressLine2 = string.IsNullOrWhiteSpace(address.Line2) ? null : address.Line2.Trim(),
-            City = address.City.Trim(), State = address.Region?.Trim() ?? string.Empty,
-            ZipCode = address.PostalCode?.Trim() ?? string.Empty, Country = address.Country.Trim(),
-            Phone = user.PhoneNumber, IsDefault = index == 0, UserId = user.Id
-        }).ToList();
-        await _context.Addresses.AddRangeAsync(addresses, cancellationToken);
+            _userManager = userManager;
+            _addressRepository = addressRepository;
+            _unitOfWork = unitOfWork;
+        }
 
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-            throw new InvalidOperationException(string.Join(", ", result.Errors.Select(x => x.Description)));
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return new ProfileDto
+        public async Task<ProfileDto> Handle(UpdateProfileCommand request, CancellationToken cancellationToken)
         {
-            Id = user.Id, FullName = user.FullName, Email = user.Email, Phone = user.PhoneNumber,
-            BackupPhone = user.BackupPhone,
-            Addresses = addresses.Select(address => new ProfileAddressDto
+            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+            if (user is null)
+                throw new KeyNotFoundException("User not found");
+
+            var normalizedEmail = _userManager.NormalizeEmail(request.Email);
+            var existingUser = await _userManager.Users.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.NormalizedEmail == normalizedEmail, cancellationToken);
+            if (existingUser is not null && existingUser.Id != user.Id)
+                throw new InvalidOperationException("Email already registered");
+
+            user.FullName = request.FullName.Trim();
+            user.Email = request.Email.Trim();
+            user.UserName = user.Email;
+            user.PhoneNumber = request.Phone.Trim();
+            user.BackupPhone = string.IsNullOrWhiteSpace(request.BackupPhone) ? null : request.BackupPhone.Trim();
+
+            var existingAddresses = await _addressRepository.GetAddressesByUserIdAsync(user.Id, cancellationToken);
+            _addressRepository.RemoveRange(existingAddresses);
+
+            var addresses = request.Addresses.Select((address, index) => new Address
             {
-                Label = address.Type, Recipient = address.FullName, Line1 = address.AddressLine1,
-                Line2 = address.AddressLine2, City = address.City,
-                Region = string.IsNullOrEmpty(address.State) ? null : address.State,
-                PostalCode = string.IsNullOrEmpty(address.ZipCode) ? null : address.ZipCode,
-                Country = address.Country
-            }).ToList()
-        };
+                Id = Guid.NewGuid(), Type = address.Label.Trim(), FullName = address.Recipient.Trim(),
+                AddressLine1 = address.Line1.Trim(),
+                AddressLine2 = string.IsNullOrWhiteSpace(address.Line2) ? null : address.Line2.Trim(),
+                City = address.City.Trim(), State = address.Region?.Trim() ?? string.Empty,
+                ZipCode = address.PostalCode?.Trim() ?? string.Empty, Country = address.Country.Trim(),
+                Phone = user.PhoneNumber, IsDefault = index == 0, UserId = user.Id
+            }).ToList();
+            await _addressRepository.AddRangeAsync(addresses, cancellationToken);
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                throw new InvalidOperationException(string.Join(", ", result.Errors.Select(x => x.Description)));
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return new ProfileDto
+            {
+                Id = user.Id, FullName = user.FullName, Email = user.Email, Phone = user.PhoneNumber,
+                BackupPhone = user.BackupPhone,
+                Addresses = addresses.Select(address => new ProfileAddressDto
+                {
+                    Label = address.Type, Recipient = address.FullName, Line1 = address.AddressLine1,
+                    Line2 = address.AddressLine2, City = address.City,
+                    Region = string.IsNullOrEmpty(address.State) ? null : address.State,
+                    PostalCode = string.IsNullOrEmpty(address.ZipCode) ? null : address.ZipCode,
+                    Country = address.Country
+                }).ToList()
+            };
+        }
     }
-}
 
 

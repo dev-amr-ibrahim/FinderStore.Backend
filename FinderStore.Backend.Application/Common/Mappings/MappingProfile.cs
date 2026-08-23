@@ -35,6 +35,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.ParentCategoryName,
                 opt => opt.MapFrom(src => src.ParentCategory != null ? src.ParentCategory.Name : null));
 
+        CreateMap<Category, CategoryLiteDto>()
+            .ReverseMap();
+
         CreateMap<Category, CategoryListDto>()
             .ForMember(dest => dest.ProductCount,
                 opt => opt.MapFrom(src => src.Products.Count));
